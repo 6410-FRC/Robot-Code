@@ -52,7 +52,7 @@ public class Robot extends TimedRobot {
   private static final double INTAKING_INTAKE_VOLTAGE = 9;
   private static final double INTAKING_FEEDER_VOLTAGE= -12; 
 
-  private static final double LAUNCHING_LAUNCHER_VOLTAGE = 10.6;
+  private static final double LAUNCHING_LAUNCHER_VOLTAGE = 10.6; 
   private static final double LAUNCHING_FEEDER_VOLTAGE = 9;
 
   private static final double SPIN_UP_FEEDER_VOLTAGE= -6; 
@@ -255,14 +255,18 @@ public void teleopPeriodic() {
   if (driverController.getRightBumperButton()) {
 
     if (driverController.getRightBumperButtonPressed()) {
-      spinUpTimer.reset();
+      spinUpTimer.reset(); // Timer is set to 0 and is ticking up.
     }
 
-    if (spinUpTimer.get() < SPIN_UP_SECONDS) {
-      IntakeAndLauncherRoller.setVoltage(LAUNCHING_LAUNCHER_VOLTAGE);
+    // Timer is still ticking until SPIN_UP_SECONDs
+    if (spinUpTimer.get() < SPIN_UP_SECONDS) { 
+      // This potentially feeds the ball into the laucher rollers
+      IntakeAndLauncherRoller.setVoltage(LAUNCHING_LAUNCHER_VOLTAGE); //CHANGE TO - ?
       FeederRoller.setVoltage(SPIN_UP_FEEDER_VOLTAGE);
     } else {
-      IntakeAndLauncherRoller.setVoltage(LAUNCHING_LAUNCHER_VOLTAGE);
+      // spinUpTimer passed SPIN_UP_SECONDS
+      // This launches the ball
+      IntakeAndLauncherRoller.setVoltage(-LAUNCHING_LAUNCHER_VOLTAGE); //CHANGE TO - ?
       FeederRoller.setVoltage(LAUNCHING_FEEDER_VOLTAGE);
     }
   }
