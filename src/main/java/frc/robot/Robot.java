@@ -53,7 +53,7 @@ public class Robot extends TimedRobot {
   private static final double INTAKING_FEEDER_VOLTAGE= -12; 
 
   private static final double LAUNCHING_LAUNCHER_VOLTAGE = 10.6; 
-  private static final double LAUNCHING_FEEDER_VOLTAGE = 9;
+  private static final double LAUNCHING_FEEDER_VOLTAGE = 9; // Both are positive. Check direction using the robot.
 
   private static final double SPIN_UP_FEEDER_VOLTAGE= -6; 
   private static final double SPIN_UP_SECONDS= 1;
