@@ -26,8 +26,9 @@ import edu.wpi.first.wpilibj.XboxController;
  */
 public class Robot extends TimedRobot {
   private static final String kDefaultAuto = "Default: Backup from Hub then Launch";
-  private static final String kLauncherFromSide = "Launch from side and stay";
+  private static final String kLauncherFromCenter = "Launch from Center";
   private static final String kLaunchAndHumanLoad = "Launch from side, drive to loading zone for human to load";
+  private static final String kLaunch = "Just LAUNCH!";
   private String m_autoSelected;
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
 
@@ -37,8 +38,8 @@ public class Robot extends TimedRobot {
   private final SparkMax RightDrive2 = new SparkMax(4, MotorType.kBrushed);
 
 
-  private final SparkMax IntakeAndLauncherRoller = new SparkMax(5, MotorType.kBrushed);
-  private final SparkMax FeederRoller = new SparkMax(6, MotorType.kBrushed);
+  private final SparkMax IntakeAndLauncherRoller = new SparkMax(5, MotorType.kBrushless);
+  private final SparkMax FeederRoller = new SparkMax(6, MotorType.kBrushless);
 
   private final DifferentialDrive myDrive = new DifferentialDrive(LeftDrive1, RightDrive1);
 
@@ -52,7 +53,7 @@ public class Robot extends TimedRobot {
   private static final double INTAKING_INTAKE_VOLTAGE = 9;
   private static final double INTAKING_FEEDER_VOLTAGE= -12; 
 
-  private static final double LAUNCHING_LAUNCHER_VOLTAGE = 10.6; 
+  private static final double LAUNCHING_LAUNCHER_VOLTAGE = 10; 
   private static final double LAUNCHING_FEEDER_VOLTAGE = 9; // Both are positive. Check direction using the robot.
 
   private static final double SPIN_UP_FEEDER_VOLTAGE= -6; 
@@ -61,16 +62,19 @@ public class Robot extends TimedRobot {
   //drive speed paramenters 
 
   private double driveSpeed = 1; 
-  private double rotateSpeed = 1; 
+  private double rotateSpeed = 1;
+  private double elapsed_time = 0; 
     /**
      * This function is run when the robot is first started up and should be used for any
      * initialization code.
      */
     public Robot() {
       m_chooser.setDefaultOption("Default: Backup from Hub then Launch", kDefaultAuto);
-      m_chooser.addOption("Launch from side and stay", kLauncherFromSide);
+      m_chooser.addOption("Launch from Center and stay", kLauncherFromCenter);
       m_chooser.addOption( "Launch from side, drive to human for load.", kLaunchAndHumanLoad);
+      m_chooser.addOption( "Launch!", kLaunch);
       SmartDashboard.putData("Auto choices", m_chooser); 
+      SmartDashboard.updateValues();
 
       //Drive Configs
       SparkMaxConfig driveConfig = new SparkMaxConfig();
@@ -131,7 +135,8 @@ public class Robot extends TimedRobot {
       
       autoTimer.start();
       autoTimer.reset();
-
+      elapsed_time = 0;
+      
     }
 
 
@@ -143,60 +148,70 @@ public class Robot extends TimedRobot {
       switch (m_autoSelected) {
         
 
-        case kLaunchAndHumanLoad:  
+        case kLaunchAndHumanLoad:  //
 
-        if (autoTimer.get() < SPIN_UP_SECONDS)
+        if (autoTimer.get() < SPIN_UP_SECONDS)//Launches balls that have been preloaded up to 8
           { 
+            elapsed_time = 1;
             IntakeAndLauncherRoller.setVoltage(LAUNCHING_LAUNCHER_VOLTAGE);
-            FeederRoller.setVoltage(SPIN_UP_FEEDER_VOLTAGE);
+            FeederRoller.setVoltage(-SPIN_UP_FEEDER_VOLTAGE);
           }
 
-          else if (autoTimer.get() < 11.8 - 10) //launch preloaded balls
+          else if (autoTimer.get() < elapsed_time + 0.5) //
           { 
+            elapsed_time += 0.5;
             IntakeAndLauncherRoller.setVoltage(LAUNCHING_LAUNCHER_VOLTAGE);
             FeederRoller.setVoltage(LAUNCHING_FEEDER_VOLTAGE);
           }
 
-          else if(autoTimer.get() < 11.8 - 10) //turn to face intake for human preload
+          else if(autoTimer.get() < elapsed_time + 0.5) //turn to face intake for human preload
           {
+            elapsed_time += 0.5;
             IntakeAndLauncherRoller.setVoltage(0); 
             FeederRoller.setVoltage(0);
-            myDrive.tankDrive(-.5,.5);
+            myDrive.tankDrive(-.5,.5);//Should turn left
           }
-          else if(autoTimer.get() < 15 - 10  )//drive to floor, load balls
+          else if(autoTimer.get() < elapsed_time + 2.7)//drive to floor, load balls
           {
-            IntakeAndLauncherRoller.setVoltage(INTAKING_INTAKE_VOLTAGE); 
-            FeederRoller.setVoltage(INTAKING_FEEDER_VOLTAGE);
-            myDrive.tankDrive(.45, .45);
+            elapsed_time += 2.7;
+            myDrive.tankDrive(.45, .45);//Drive forward for 2.7 seconds
           }
-          else if(autoTimer.get() < 17 - 10 ) //drive to floor, load balls
+          else if(autoTimer.get() < elapsed_time + 2) //drive to floor, load balls
           {
-            IntakeAndLauncherRoller.setVoltage(INTAKING_INTAKE_VOLTAGE); 
-            FeederRoller.setVoltage(INTAKING_FEEDER_VOLTAGE);
-            myDrive.tankDrive(0, 0);
+            elapsed_time += 2;
+            IntakeAndLauncherRoller.setVoltage(-INTAKING_INTAKE_VOLTAGE); //load balls
+            FeederRoller.setVoltage(-INTAKING_FEEDER_VOLTAGE);
+            myDrive.tankDrive(0.85, 0.85);//Speed to execute needed
           }
           else //turn everything off
           {
-            IntakeAndLauncherRoller.setVoltage(0);
+            IntakeAndLauncherRoller.setVoltage(0);//resets it
             FeederRoller.setVoltage(0);
             myDrive.tankDrive(0, 0);
           } 
 
-        break; 
-
-        case kLauncherFromSide: //This code is to stand at an angle & launch
-          
-          if(autoTimer.get() < SPIN_UP_SECONDS) //spin the launcher
-          { 
-          IntakeAndLauncherRoller.setVoltage(LAUNCHING_LAUNCHER_VOLTAGE);
-          FeederRoller.setVoltage(SPIN_UP_FEEDER_VOLTAGE);
+        break;
+         //To seclect click "Launch from Center and Stay"
+        case kLauncherFromCenter: //Use when at center to drive away from hub and launch balls
+        //Make it go further
+          if (autoTimer.get() < 0.6){
+            myDrive.tankDrive(0.6, 0.6);
+          }
+          else if (autoTimer.get() < 1.6){
+            IntakeAndLauncherRoller.setVoltage(-10);
+          }
+          else if (autoTimer.get() < 5){
+            IntakeAndLauncherRoller.setVoltage(-10);
+            FeederRoller.setVoltage(-9);
+          }
+          else if (autoTimer.get() < 5.4){
+            myDrive.tankDrive(-0.6, -0.6);
+          }
+          else if (autoTimer.get() < 20){
+            IntakeAndLauncherRoller.setVoltage(0);
+            FeederRoller.setVoltage(0);
           }
 
-          else if (autoTimer.get() <11) 
-          { 
-            IntakeAndLauncherRoller.setVoltage(LAUNCHING_LAUNCHER_VOLTAGE);
-            FeederRoller.setVoltage(LAUNCHING_FEEDER_VOLTAGE);
-          }
 
           else //turn eveyrthing off
           {
@@ -206,22 +221,57 @@ public class Robot extends TimedRobot {
 
 
           break;
-        case kDefaultAuto: //This code is to stand infront of goal & launch
-        default:
-          if(autoTimer.get() < SPIN_UP_SECONDS + .5 ) //spin the launcher
+        case kLaunch:
+          if(autoTimer.get() < 0.7){ 
+             IntakeAndLauncherRoller.setVoltage(-10);
+          }
+          else if(autoTimer.get() < 11){
+            IntakeAndLauncherRoller.setVoltage(-10);
+            FeederRoller.setVoltage(-9);
+          }
+          else if(autoTimer.get() < 20){
+            IntakeAndLauncherRoller.setVoltage(0);
+            FeederRoller.setVoltage(0);
+          }
           
-          { 
-            IntakeAndLauncherRoller.setVoltage(LAUNCHING_LAUNCHER_VOLTAGE);
-            FeederRoller.setVoltage(SPIN_UP_FEEDER_VOLTAGE);
-            myDrive.tankDrive(.4, .4);
+            break;
+            //To activate click "Default: Backup from Hub then Launch"
+        case kDefaultAuto: //This code is to stand from the side of the Hub and launch
+        default:
+        //Speeds up Launcher for better launches
+          if(autoTimer.get() < 0.7){ 
+            IntakeAndLauncherRoller.setVoltage(-LAUNCHING_LAUNCHER_VOLTAGE);
           }
-
-          else if (autoTimer.get() <11) 
-          { 
-            IntakeAndLauncherRoller.setVoltage(LAUNCHING_LAUNCHER_VOLTAGE);
-            FeederRoller.setVoltage(LAUNCHING_FEEDER_VOLTAGE);
-            myDrive.tankDrive(0, 0);  
+          else if(autoTimer.get() < 5){
+            IntakeAndLauncherRoller.setVoltage(-LAUNCHING_LAUNCHER_VOLTAGE);
+            FeederRoller.setVoltage(-9);
           }
+          //Rotates robot to face nutrual zone
+          else if (autoTimer.get() < 5.5) { 
+            myDrive.tankDrive(-0.4, 0.4);  
+          }
+          //Drives to nutrual zone to collect balls
+          else if (autoTimer.get() < 10) {
+             myDrive.tankDrive(0.6, 0.6);
+            IntakeAndLauncherRoller.setVoltage(-LAUNCHING_LAUNCHER_VOLTAGE);
+            FeederRoller.setVoltage(-SPIN_UP_FEEDER_VOLTAGE);
+          }
+          //Should make the robot drive back to original spot
+            else if (autoTimer.get() < 14.5) {
+              myDrive.tankDrive(-0.6, -0.6);
+            }
+            //Angles the robot to how it was placed
+            else if (autoTimer.get() < 14.5) {
+              myDrive.tankDrive( 0.4, -0.4);
+            }
+            else if (autoTimer.get() < 15.2){
+              IntakeAndLauncherRoller.setVoltage(-LAUNCHING_LAUNCHER_VOLTAGE);
+            }
+            //Fires balls collected
+            else if (autoTimer.get() < 20) {
+              IntakeAndLauncherRoller.setVoltage(-LAUNCHING_LAUNCHER_VOLTAGE);
+              FeederRoller.setVoltage(-SPIN_UP_FEEDER_VOLTAGE);
+            }
 
           else //turns everything off
           {
@@ -231,6 +281,7 @@ public class Robot extends TimedRobot {
           }
           
           break;
+
       }
     
     }
@@ -248,8 +299,8 @@ public void teleopPeriodic() {
 
   // Drive
   myDrive.arcadeDrive(
-      -driverController.getLeftY() * 0.5,
-      -driverController.getRightX() * 0.5);
+      -driverController.getLeftY() * 0.9,
+      -driverController.getRightX() * 0.9);
 
   // Launching mode (Right Bumper)
   if (driverController.getRightBumperButton()) {
@@ -259,28 +310,29 @@ public void teleopPeriodic() {
     }
 
     // Timer is still ticking until SPIN_UP_SECONDs
-    if (spinUpTimer.get() < SPIN_UP_SECONDS) { 
+    if (spinUpTimer.get() < 0.7) { 
       // This potentially feeds the ball into the laucher rollers
-      IntakeAndLauncherRoller.setVoltage(LAUNCHING_LAUNCHER_VOLTAGE); //CHANGE TO - ?
-      FeederRoller.setVoltage(SPIN_UP_FEEDER_VOLTAGE);
+      IntakeAndLauncherRoller.setVoltage(-LAUNCHING_LAUNCHER_VOLTAGE); // this one controlls launchrer and feed clockwise
     } else {
       // spinUpTimer passed SPIN_UP_SECONDS
       // This launches the ball
-      IntakeAndLauncherRoller.setVoltage(-LAUNCHING_LAUNCHER_VOLTAGE); //CHANGE TO - ?
-      FeederRoller.setVoltage(LAUNCHING_FEEDER_VOLTAGE);
+      IntakeAndLauncherRoller.setVoltage(-LAUNCHING_LAUNCHER_VOLTAGE); //changed
+      FeederRoller.setVoltage(-LAUNCHING_FEEDER_VOLTAGE); //Do not touch
     }
   }
-
   // Intake mode (Left Bumper)
   else if (driverController.getLeftBumperButton()) {
-    IntakeAndLauncherRoller.setVoltage(INTAKING_INTAKE_VOLTAGE);
-    FeederRoller.setVoltage(INTAKING_FEEDER_VOLTAGE);
+    IntakeAndLauncherRoller.setVoltage(-INTAKING_INTAKE_VOLTAGE); //changed
+    FeederRoller.setVoltage(-INTAKING_FEEDER_VOLTAGE); //dont touch
   }
 
   // Eject mode (A Button)
   else if (driverController.getAButton()) {
-    IntakeAndLauncherRoller.setVoltage(-INTAKING_INTAKE_VOLTAGE);
-    FeederRoller.setVoltage(-INTAKING_FEEDER_VOLTAGE);
+    IntakeAndLauncherRoller.setVoltage(INTAKING_INTAKE_VOLTAGE);
+    FeederRoller.setVoltage(INTAKING_FEEDER_VOLTAGE);
+  }
+  else if (driverController.getXButton()) {
+    FeederRoller.setVoltage(INTAKING_FEEDER_VOLTAGE);
   }
 
   // Stop everything
